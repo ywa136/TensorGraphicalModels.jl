@@ -4,12 +4,6 @@ Implementation of the Graphical Lasso (Glasso) for l1-penalized precision matrix
 Code credit: https://github.com/bnaul/GraphLasso.jl
 """
 
-using LinearAlgebra
-using SparseArrays
-using LightGraphs
-using GLMNet
-using Distributions
-
 
 function glasso(S::Matrix{Float64}, α::Float64; tol::Float64 = 1e-5,
                     maxit::Int = 1000, penalize_diag::Bool = true, verbose::Bool = false)

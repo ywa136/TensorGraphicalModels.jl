@@ -27,13 +27,6 @@ Last modified: 02/25/2021
 """
 
 
-using Kronecker
-using TensorToolbox
-using LinearAlgebra
-using Printf
-include("utils.jl")
-
-
 function syglasso_palm(X::AbstractArray{<:Real}, X_kGram::AbstractVector{<:AbstractArray}, λ::Vector{<:Real},
     Ψ0::AbstractVector{<:AbstractArray}; regtype::String = "L1", a::Real=3, niter::Int=100, ninner::Int=10,
     η0::Real=0.01, c::Real=0.01, lsrule::String="bb", ϵ::Real=1e-5,

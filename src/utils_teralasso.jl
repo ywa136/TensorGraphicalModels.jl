@@ -1,8 +1,3 @@
-using LinearAlgebra
-using Kronecker
-using Plots
-
-
 function shrink_regularizer(A, lambda,stepSz, type,a)
     #type = L1; SCAD; MCP
     if type == :L1

@@ -9,10 +9,6 @@ Author: Wayne Wang
 Last modified: Apr 1, 2021
 """
 
-using LinearAlgebra
-using SparseArrays
-using Arpack # svds funciton
-
 
 function rearrange(A::AbstractMatrix{<:Real},
     m1::Int, n1::Int, m2::Int, n2::Int)
