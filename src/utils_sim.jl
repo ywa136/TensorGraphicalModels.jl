@@ -287,7 +287,7 @@ function gen_kalmanfilter_data(dynamic_type::AbstractString, obs_type::AbstractS
     # evolution
     for t = 1:T
         # dynamics update
-        X[:, t + 1] .= kalmanfilter_dynamic_update(dynamic_type, X[:, t], add_process_noise, process_noise)
+        X[:, t + 1] .= kalmanfilter_dynamic_update(dynamic_type, X[:, t], px, add_process_noise, process_noise)
         # observations update
         Y[:, t] .= kalmanfilter_observation_update(H, X[:, t + 1], py, px, obs_noise)
     end
@@ -297,6 +297,7 @@ end
 
 
 function kalmanfilter_dynamic_update(dynamic_type::AbstractString, X_curr::AbstractArray,
+    px::Tuple,
     add_process_noise::Bool,
     process_noise::Real;
     α::Real = 0.05,
@@ -324,7 +325,7 @@ function kalmanfilter_dynamic_update(dynamic_type::AbstractString, X_curr::Abstr
     # dynamics update, i.e., solve the Sylvester equation
     px = size(X_curr)
     X_new = similar(X_curr)
-    sylv_eqn_solver!(X_new, X_curr, dynamic_type; α = α, ϵ = ϵ, Δx = Δx, Δt = Δt)
+    sylv_eqn_solver!(X_new, X_curr, px, dynamic_type; α = α, ϵ = ϵ, Δx = Δx, Δt = Δt)
 
     if add_process_noise
         w = zeros(prod(px))
@@ -336,7 +337,8 @@ function kalmanfilter_dynamic_update(dynamic_type::AbstractString, X_curr::Abstr
 end
 
 
-function sylv_eqn_solver!(X_new::AbstractArray, X_curr::AbstractArray, type::CONVECTION_DIFFUSION;
+function sylv_eqn_solver!(X_new::AbstractArray, X_curr::AbstractArray, px::Tuple,
+    type::CONVECTION_DIFFUSION;
     α::Real = 0.05,
     ϵ::Real = 0.01,
     Δx::Real = 0.005,
@@ -348,7 +350,6 @@ function sylv_eqn_solver!(X_new::AbstractArray, X_curr::AbstractArray, type::CON
     # assume same spatial steps in x&y Δx = 1/200 
     # time steps Δt = 0.0005 
     γ = (α * Δt) / Δx^2
-    px = size(X_curr)
     # 2D oncvection-diffusion equation operator
     A = spdiagm(-1 => [-(1 + ϵ / (2 * α) * Δx) * γ for _ = 1:(px[1] - 1)],
                 0 => [(4 + 1 / γ) * γ / 2 for _ = 1:px[1]],
@@ -360,13 +361,13 @@ function sylv_eqn_solver!(X_new::AbstractArray, X_curr::AbstractArray, type::CON
 end
 
 
-function sylv_eqn_solver!(X_new::AbstractArray, X_curr::AbstractArray, type::POISSON_AR;
+function sylv_eqn_solver!(X_new::AbstractArray, X_curr::AbstractArray, px::Tuple,  
+    type::POISSON_AR;
     α::Real = 0.05,
     ϵ::Real = 0.01,
     Δx::Real = 1/200,
     Δt::Real = 0.0005)
     # 2D oncvection-diffusion equation operator
-    px = size(X_curr)
     A = spdiagm(-1 => [-1.0 for _ = 1:(px[1] - 1)],
                 0 => [2.0 for _ = 1:px[1]],
                 1 => [-1.0 for _ = 1:(px[1]-1)])
@@ -380,13 +381,13 @@ function sylv_eqn_solver!(X_new::AbstractArray, X_curr::AbstractArray, type::POI
 end
 
 
-function sylv_eqn_solver!(X_new::AbstractArray, X_curr::AbstractArray, type::POISSON;
+function sylv_eqn_solver!(X_new::AbstractArray, X_curr::AbstractArray, px::Tuple, 
+    type::POISSON;
     α::Real = 0.05,
     ϵ::Real = 0.01,
     Δx::Real = 1/200,
     Δt::Real = 0.0005)
     # 2D oncvection-diffusion equation operator
-    px = size(X_curr)
     A = spdiagm(-1 => [-1.0 for _ = 1:(px[1] - 1)],
                 0 => [2.0 for _ = 1:px[1]],
                 1 => [-1.0 for _ = 1:(px[1] - 1)]) 

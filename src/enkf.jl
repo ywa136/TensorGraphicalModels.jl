@@ -37,7 +37,7 @@ function enkf(Y::AbstractMatrix{<:Real},
         for i = 1:N
             # forecast step
             X[t + 1, :, i] .=  kalmanfilter_dynamic_update(dynamic_type, 
-                                    X[t, :, i], add_process_noise, process_noise)
+                                    X[t, :, i], px, add_process_noise, process_noise)
             # update step
             rand!(MvNormal(size(obs_noise_vec, 1), obs_noise), obs_noise_vec)
             X_shift .= (obs_noise^-1) * copy(H') * (view(Y, :, t) .+ obs_noise_vec .- H * view(X, t + 1, :, i))
@@ -85,7 +85,7 @@ function enkf(Y::AbstractMatrix{<:Real},
         for i = 1:N
             # forecast step
             X[t + 1, :, i] .=  kalmanfilter_dynamic_update(dynamic_type, 
-                                    X[t, :, i], add_process_noise, process_noise)
+                                    X[t, :, i], px, add_process_noise, process_noise)
             # update step
             rand!(MvNormal(size(obs_noise_vec, 1), obs_noise), obs_noise_vec)
             X_shift .= K \ (view(Y,:,t) .+ obs_noise_vec .- H * view(X, t + 1, :, i))
