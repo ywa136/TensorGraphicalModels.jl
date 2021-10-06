@@ -323,7 +323,6 @@ function kalmanfilter_dynamic_update(dynamic_type::AbstractString, X_curr::Abstr
     end
 
     # dynamics update, i.e., solve the Sylvester equation
-    px = size(X_curr)
     X_new = similar(X_curr)
     sylv_eqn_solver!(X_new, X_curr, px, dynamic_type; α = α, ϵ = ϵ, Δx = Δx, Δt = Δt)
 
