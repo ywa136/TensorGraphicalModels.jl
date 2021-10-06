@@ -166,8 +166,10 @@ function state_inv_cov_est!(Omega::AbstractArray, method::KGLASSO, X::AbstractAr
     K::Int = 2,
     λ::AbstractVector{<:Real} = Array{Float64, 1}())
     ## convert data matrix to multi-dimensional array
-    str_to_eval = string("(", join([string("px[", i, "], ") for i = 1:K]), "N)")
-    Xt = zeros(eval(Meta.parse(str_to_eval))) #d_1 × … × d_K × N tensor
+    # str_to_eval = string("(", join([string("px[", i, "], ") for i = 1:K]), "N)")
+    # Xt = zeros(eval(Meta.parse(str_to_eval))) #d_1 × … × d_K × N tensor
+    ## K=2 only! TODO: modify to work with various K ##
+    Xt = zeros(px[1], px[2], N)
     for i = 1:N
         ## K=2 only! TODO: modify to work with various K ##
         Xt[:, :, i] .= reshape(view(X, t, :, i), px)
