@@ -35,6 +35,8 @@ Learns a K-order Kronecker sum covariance model.
     precision matrices
 - `out::AbstractVector{AbstractVector{Any}}`: iteration history.
 """
+
+
 function teralasso(
     S_kGram::AbstractVector,
     regtype::Symbol=:L1,
@@ -42,7 +44,7 @@ function teralasso(
     regcoef::Union{Nothing, AbstractVector}=nothing,
     ;
     zeta::Real=0.1,
-    c::Real=0.5,
+    c::Real=0.1,
     tol::Real=1e-6,
     niter::Int=50,
     ninner::Int=11,
@@ -133,9 +135,11 @@ function teralasso(
     return Psi, out
 end
 
+
 function barzilai_borwein(PsiN, Psi, MsN, M, ps)
     Num = 0
     Den = 0
+    K = size(PsiN, 1)
     dgI = zeros(K)
     for k = 1:K
         dgI[k] = mean(diag((PsiN[k] - Psi[k])))
@@ -161,6 +165,7 @@ function barzilai_borwein(PsiN, Psi, MsN, M, ps)
     end
     return zeta
 end
+
 
 function eval_cond(PsiN, Psi, M, S_kGram, S_tilde, ps, zeta, logdet, kappa)
     K = length(ps)
@@ -216,6 +221,7 @@ function eval_cond(PsiN, Psi, M, S_kGram, S_tilde, ps, zeta, logdet, kappa)
     return result, logdetN
 end
 
+
 function fun(S_kGram, Ψs)
     # - logdet(Ω) + < Ω,S >
     ps = [size(S, 1) for S in S_kGram]
@@ -235,6 +241,7 @@ function fun(S_kGram, Ψs)
 
     return -logdet + trace
 end
+
 
 function reg(Ψs, ρs)
     ps = [size(Ψ, 1) for Ψ in Ψs]

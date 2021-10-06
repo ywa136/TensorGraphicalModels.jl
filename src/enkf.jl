@@ -3,7 +3,7 @@ Ensemble Kalman Filter (EnKF) using (sparse) tensor graphical models for state
     covariance / inverse covariance estimation
 
 Author: Wayne Wang
-Last modified: 07/18/2021
+Last modified: 10/06/2021
 """
 
 # precision estimation methods type
@@ -18,25 +18,13 @@ struct KPCA end
 function enkf(Y::AbstractMatrix{<:Real}, 
     inv_cov_method::Union{SG_PALM, TERALASSO, KGLASSO, GLASSO},
     dynamic_type::AbstractString,
-    obs_type::AbstractString,
+    H::AbstractArray,
     px::Tuple,
     py::Tuple,
     N::Int,
     obs_noise::Real, 
     process_noise::Real,
     add_process_noise::Bool)
-
-    # observation types
-    if obs_type == "identity"
-        obs_type = IDENTITY()
-    elseif obs_type == "linear_perm"
-        obs_type = LINEAR_PERM()
-    elseif obs_type == "linear_perm_miss"
-        obs_type = LINEAR_PERM_MISS()
-    else
-        print("Observation type unsupported!")
-    end
-
     # initialization
     T = size(Y, 2)
     X = zeros((T + 1, prod(px), N)) # T × p × N
@@ -44,7 +32,6 @@ function enkf(Y::AbstractMatrix{<:Real},
     X0 = randn((prod(px), N))
     X[1, :, :] .= X0
     Omega = spzeros(prod(px), prod(px))
-    H = measure_operator(obs_type, py, px) #measurement operator
     obs_noise_vec = zeros(size(H, 1))
     Ht_Rinv_H = (obs_noise^-1) * copy(H') * H #assuming R is diagonal w/ obs_noise*I
     X_shift = similar(X[1, :, 1])
@@ -60,8 +47,9 @@ function enkf(Y::AbstractMatrix{<:Real},
             X[t + 1, :, i] .=  kalmanfilter_dynamic_update(dynamic_type, 
                                     X[t, :, i], add_process_noise, process_noise)
             # update step
-            enkf_update!(X[t + 1, :, i], inv_cov_method, view(Y, :, t), view(Omega, :, :), view(H, :, :),
-                        view(Ht_Rinv_H, :, :), X_shift, obs_noise, obs_noise_vec)
+            rand!(MvNormal(size(obs_noise_vec, 1), obs_noise), obs_noise_vec)
+            X_shift .= (obs_noise^-1) * copy(H') * (view(Y, :, t) .+ obs_noise_vec .- H * view(X, t + 1, :, i))
+            X[t + 1, :, i] .+= (Omega .+ Ht_Rinv_H) \ X_shift
         end
     end
 
@@ -72,32 +60,19 @@ end
 function enkf(Y::AbstractMatrix{<:Real}, 
     cov_method::KPCA,
     dynamic_type::AbstractString,
-    obs_type::AbstractString,
+    H::AbstractArray,
     px::Tuple,
     py::Tuple,
     N::Int,
     obs_noise::Real, 
     process_noise::Real,
     add_process_noise::Bool)
-
-    # observation types
-    if obs_type == "identity"
-        obs_type = IDENTITY()
-    elseif obs_type == "linear_perm"
-        obs_type = LINEAR_PERM()
-    elseif obs_type == "linear_perm_miss"
-        obs_type = LINEAR_PERM_MISS()
-    else
-        print("Observation type unsupported!")
-    end
-
     # initial ensemble
     T = size(Y, 2)
     X = zeros((T + 1, prod(px), N)) # T × p × N
     Xbar = zeros((T + 1, prod(px))) # T × p: mean latext process each time
     X0 = randn((prod(px), N))
     X[1, :, :] .= X0
-    H = measure_operator(obs_type, py, px) #measurement operator
     obs_noise_vec = zeros(size(H, 1))
     K = zeros((size(H, 1), size(H, 1)))
     R = ScalMat(size(H, 1), obs_noise)
@@ -120,52 +95,13 @@ function enkf(Y::AbstractMatrix{<:Real},
             X[t + 1, :, i] .=  kalmanfilter_dynamic_update(dynamic_type, 
                                     X[t, :, i], add_process_noise, process_noise)
             # update step
-            enkf_update!(X[t + 1, :, i], cov_method, view(Y, :, t), view(Sigma, :, :), view(H, :, :),
-                        view(K, :, :), X_shift, obs_noise, obs_noise_vec)  
+            rand!(MvNormal(size(obs_noise_vec, 1), obs_noise), obs_noise_vec)
+            X_shift .= K \ (view(Y,:,t) .+ obs_noise_vec .- H * view(X, t + 1, :, i))
+            X[t + 1, :, i] .+= Sigma * copy(H') * X_shift
         end
     end
 
     return X, Xbar, Sigma
-end
-
-
-function enkf_update!(X::AbstractArray, 
-    method::Union{SG_PALM, TERALASSO, KGLASSO, GLASSO},
-    Y::AbstractArray, 
-    Omega::AbstractArray,
-    H::AbstractArray,
-    Ht_Rinv_H::AbstractArray,
-    X_shift::AbstractArray,
-    obs_noise::Real,
-    obs_noise_vec::AbstractArray)
-    # Kalman update step using precision matrix
-    ## Kalman gain matrix: (Omega + H^T R^-1 H)^-1 H^T R^-1
-    ## the "shift" from forecast to update amounts to solving 
-    ## (Omega + H^T R^-1 H) x = H^T R^-1 (Y_t + v_t - H X_t^i)
-    rand!(MvNormal(size(obs_noise_vec, 1), obs_noise), obs_noise_vec)
-    X_shift .= (obs_noise^-1) * copy(H') * (Y .+ obs_noise_vec .- H * X)
-    X .+= (Omega .+ Ht_Rinv_H) \ X_shift
-    return nothing
-end
-
-
-function enkf_update!(X::AbstractArray, 
-    method::KPCA,
-    Y::AbstractArray, 
-    Sigma::AbstractArray,
-    H::AbstractArray,
-    K::AbstractArray,
-    X_shift::AbstractArray,
-    obs_noise::Real,
-    obs_noise_vec::AbstractArray)
-    # Kalman update step using covariance matrix
-    ## "shift" from forecast to update amounts to solving 
-    ## (R + H Sigma H^T) x = Y_t + v_t - H X_t^i 
-    ## and then Sigma H^T x
-    rand!(MvNormal(size(obs_noise_vec, 1), obs_noise), obs_noise_vec)
-    X_shift .= K \ (Y .+ obs_noise_vec .- H * X)
-    X .+= Sigma * copy(H') * X_shift
-    return nothing
 end
 
 
@@ -195,7 +131,7 @@ function state_inv_cov_est!(Omega::AbstractArray, method::SG_PALM, X::AbstractAr
     ## run PALM for precision matrix estimation
     Psi0 = [sparse(eye(px[k])) for k = 1:K]
     fun = (iter, Psi) -> [1, time()] # NULL func
-    lambda = (length(λ) == 0) ? [15 * sqrt(px[k] * log(prod(px)) / N) for k = 1:K] : λ
+    lambda = (length(λ) == 0) ? [sqrt(px[k] * log(prod(px)) / N) for k = 1:K] : λ
     PsiH, _ = syglasso_palm(X[t, :, :] .- Xbar[t, :], X_kGram, lambda, Psi0,
                     regtype = regtype, a = a, niter = niter, ninner = ninner,
                     η0 = η0, c = c, lsrule = lsrule, ϵ = ϵ, fun = fun)
@@ -224,8 +160,8 @@ function state_inv_cov_est!(Omega::AbstractArray, method::TERALASSO, X::Abstract
     end
 
     ## run teralasso
-    lambda = (length(λ) == 0) ? [10 * sqrt(log(prod(px)) / (N * px[k])) for k = 1:K] : λ
-    PsiH, _ = teralasso(X_kGram, [px[k] for k = 1:K], "L1", 1, 1e-6, lambda, niter)
+    # lambda = (length(λ) == 0) ? [10 * sqrt(log(prod(px)) / (N * px[k])) for k = 1:K] : λ
+    PsiH, _ = teralasso(X_kGram)
 
     ## form Omega
     Omega .= kroneckersum(PsiH[1], PsiH[2])

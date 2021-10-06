@@ -34,5 +34,6 @@ export teralasso
 export kron_pca
 export robust_kron_pca
 export glasso
+export enkf
 
 end

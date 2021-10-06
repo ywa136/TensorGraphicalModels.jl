@@ -2,7 +2,7 @@
 Collections of utility functions for data simulation and evaluations
 
 Author: Wayne Wang
-Last modified: 07/14/2021
+Last modified: 10/06/2021
 """
 
 
@@ -271,16 +271,28 @@ function gen_kalmanfilter_data(dynamic_type::AbstractString, obs_type::AbstractS
     X = zeros((prod(px), T + 1))
     Y = (obs_type == "linear_perm_miss") ? zeros((Int(0.5 * prod(py)), T)) : zeros((prod(py), T))
     X[:, 1] .= X0[:]
+
+    # swtich observation types
+    if obs_type == "identity"
+        obs_type = IDENTITY()
+    elseif obs_type == "linear_perm"
+        obs_type = LINEAR_PERM()
+    elseif obs_type == "linear_perm_miss"
+        obs_type = LINEAR_PERM_MISS()
+    else
+        print("Observation type type unsupported!")
+    end
+    H = measure_operator(obs_type, py, px)
     
     # evolution
     for t = 1:T
         # dynamics update
         X[:, t + 1] .= kalmanfilter_dynamic_update(dynamic_type, X[:, t], add_process_noise, process_noise)
         # observations update
-        Y[:, t] .= kalmanfilter_observation_update(obs_type, X[:, t + 1], py, px, obs_noise)
+        Y[:, t] .= kalmanfilter_observation_update(H, X[:, t + 1], py, px, obs_noise)
     end
 
-    return X, Y
+    return X, Y, H
 end
 
 
@@ -288,8 +300,8 @@ function kalmanfilter_dynamic_update(dynamic_type::AbstractString, X_curr::Abstr
     add_process_noise::Bool,
     process_noise::Real;
     α::Real = 0.05,
-    ϵ::Real = 0.1,
-    Δx::Real = 1/200,
+    ϵ::Real = 0.01,
+    Δx::Real = 0.005,
     Δt::Real = 0.0005)
     # step sizes for 2D convection-diffusion PDE discretization
     # convergence/stability criteria: Δt <= (Δx^2)/(4*α)
@@ -325,9 +337,9 @@ end
 
 
 function sylv_eqn_solver!(X_new::AbstractArray, X_curr::AbstractArray, type::CONVECTION_DIFFUSION;
-    α::Real = 0.5,
-    ϵ::Real = 0.5,
-    Δx::Real = 1/200,
+    α::Real = 0.05,
+    ϵ::Real = 0.01,
+    Δx::Real = 0.005,
     Δt::Real = 0.0005)
     # step sizes for 2D convection-diffusion PDE discretization
     # convergence/stability criteria: Δt <= (Δx^2)/(4*α)
@@ -348,8 +360,8 @@ end
 
 
 function sylv_eqn_solver!(X_new::AbstractArray, X_curr::AbstractArray, type::POISSON_AR;
-    α::Real = 0.5,
-    ϵ::Real = 0.5,
+    α::Real = 0.05,
+    ϵ::Real = 0.01,
     Δx::Real = 1/200,
     Δt::Real = 0.0005)
     # 2D oncvection-diffusion equation operator
@@ -367,8 +379,8 @@ end
 
 
 function sylv_eqn_solver!(X_new::AbstractArray, X_curr::AbstractArray, type::POISSON;
-    α::Real = 0.5,
-    ϵ::Real = 0.5,
+    α::Real = 0.05,
+    ϵ::Real = 0.01,
     Δx::Real = 1/200,
     Δt::Real = 0.0005)
     # 2D oncvection-diffusion equation operator
@@ -383,21 +395,11 @@ function sylv_eqn_solver!(X_new::AbstractArray, X_curr::AbstractArray, type::POI
 end
 
 
-function kalmanfilter_observation_update(obs_type::AbstractString, X::AbstractArray,
+function kalmanfilter_observation_update(H::AbstractArray, X::AbstractArray,
     py::Tuple,
     px::Tuple,
     obs_noise::Real)
-    # swtich observation types
-    if obs_type == "identity"
-        obs_type = IDENTITY()
-    elseif obs_type == "linear_perm"
-        obs_type = LINEAR_PERM()
-    elseif obs_type == "linear_perm_miss"
-        obs_type = LINEAR_PERM_MISS()
-    else
-        print("Observation type type unsupported!")
-    end
-    H = measure_operator(obs_type, py, px)
+    # measurement operation plus noise 
     v = zeros(size(H, 1))
     rand!(MvNormal(length(v), obs_noise), v)
     Y = H * X .+ v
@@ -506,7 +508,7 @@ function plot_nrmse!(NRMSEs::AbstractArray, method::AbstractString)
     T, N = size(NRMSEs)
     ## NRMSEs over time steps
     ## showing the mean NRMSEs and the 90% CI
-    plot!(1:T, mean(NRMSEs, dims=2),
+    Plots.plot!(1:T, mean(NRMSEs, dims=2),
             yaxis = :log,
             ribbon = sort(NRMSEs, dims = 2),
             fillalpha = .2,
