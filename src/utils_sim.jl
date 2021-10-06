@@ -348,6 +348,7 @@ function sylv_eqn_solver!(X_new::AbstractArray, X_curr::AbstractArray, type::CON
     # assume same spatial steps in x&y Δx = 1/200 
     # time steps Δt = 0.0005 
     γ = (α * Δt) / Δx^2
+    px = size(X_curr)
     # 2D oncvection-diffusion equation operator
     A = spdiagm(-1 => [-(1 + ϵ / (2 * α) * Δx) * γ for _ = 1:(px[1] - 1)],
                 0 => [(4 + 1 / γ) * γ / 2 for _ = 1:px[1]],
@@ -365,6 +366,7 @@ function sylv_eqn_solver!(X_new::AbstractArray, X_curr::AbstractArray, type::POI
     Δx::Real = 1/200,
     Δt::Real = 0.0005)
     # 2D oncvection-diffusion equation operator
+    px = size(X_curr)
     A = spdiagm(-1 => [-1.0 for _ = 1:(px[1] - 1)],
                 0 => [2.0 for _ = 1:px[1]],
                 1 => [-1.0 for _ = 1:(px[1]-1)])
@@ -384,6 +386,7 @@ function sylv_eqn_solver!(X_new::AbstractArray, X_curr::AbstractArray, type::POI
     Δx::Real = 1/200,
     Δt::Real = 0.0005)
     # 2D oncvection-diffusion equation operator
+    px = size(X_curr)
     A = spdiagm(-1 => [-1.0 for _ = 1:(px[1] - 1)],
                 0 => [2.0 for _ = 1:px[1]],
                 1 => [-1.0 for _ = 1:(px[1] - 1)]) 

@@ -6,14 +6,6 @@ Author: Wayne Wang
 Last modified: 10/06/2021
 """
 
-# precision estimation methods type
-struct SG_PALM end
-struct TERALASSO end
-struct KGLASSO end
-struct GLASSO end
-# covariance estimation methods type
-struct KPCA end
-
 
 function enkf(Y::AbstractMatrix{<:Real}, 
     inv_cov_method::Union{SG_PALM, TERALASSO, KGLASSO, GLASSO},
