@@ -131,7 +131,6 @@ function linesearch_cond(Ψ::AbstractVector{<:AbstractArray}, Ψnew::AbstractVec
     sqrDiff = similar(Ψ[k])
     copy!(Diff, Ψnew[k] - Ψ[k])
     copy!(sqrDiff, Ψnew[k]^2 - Ψ[k]^2)
-    N = size(X,2)
     # RHS: quadratic term
     rhs = tr(Diff*h_grad_k) + (0.5/η)*norm(Diff)
     # LHS: difference in h function
@@ -139,9 +138,6 @@ function linesearch_cond(Ψ::AbstractVector{<:AbstractArray}, Ψnew::AbstractVec
             logdet(Diagonal(kroneckersum_list([Diagonal(Ψ[j]) for j=1:K]))^2) +
             tr(sqrDiff*X_kGram_k)
 
-    Xk = zeros(dk,Int(prod(d)/dk)) # pre-allocate
-    XkT = zeros(Int(prod(d)/dk),dk) # pre-allocate
-    kp_k = spzeros(Int(prod(d)/dk),Int(prod(d)/dk)) # pre-allocate
     crossTerm = zeros(dk,dk) # pre-allocate
     @inbounds for j=1:K
         if j != k
