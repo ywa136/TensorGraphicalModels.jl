@@ -17,6 +17,7 @@ using Arpack
 using Statistics
 using Debugger
 using Printf
+using Plots
 
 include("utils.jl")
 include("glasso.jl")
