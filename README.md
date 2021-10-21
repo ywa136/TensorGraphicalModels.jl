@@ -2,6 +2,7 @@
 TensorGraphicalModels.jl is a suite of Julia tools for estimating high-dimensional multiway (tensor-variate) covariance and inverse covariance matrices.
 
 # WORK IN PROGRESS
+TODO: add a Julia colab page.
 
 ## Installation
 ```julia
