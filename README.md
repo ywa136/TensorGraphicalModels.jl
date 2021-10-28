@@ -7,7 +7,7 @@ TensorGraphicalModels.jl is a suite of Julia tools for estimating high-dimension
 ```
 
 ## Examples
-Please check out a Julia colab(enkf_colab.ipynb) created for illustration of some functionalities of the package. Here are some basic examples as well:
+Please check out a Julia colab(https://github.com/ywa136/TensorGraphicalModels.jl/blob/12814b774a9b86714634654fc34d3a1aa8f973bb/enkf_colab.ipynb) created for illustration of some functionalities of the package. Here are some basic examples as well:
 
 Example code for fitting a KP inverse covariance model:
 ```julia
