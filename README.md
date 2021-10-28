@@ -1,15 +1,14 @@
 # TensorGraphicalModels
 TensorGraphicalModels.jl is a suite of Julia tools for estimating high-dimensional multiway (tensor-variate) covariance and inverse covariance matrices.
 
-# WORK IN PROGRESS
-TODO: add a Julia colab page.
-
 ## Installation
 ```julia
 ] add https://github.com/ywa136/TensorGraphicalModels.jl
 ```
 
 ## Examples
+Please check out a Julia colab(enkf_colab.ipynb) created for illustration of some functionalities of the package. Here are some basic examples as well:
+
 Example code for fitting a KP inverse covariance model:
 ```julia
 using TensorGraphicalModels
